@@ -1,5 +1,5 @@
 ---
-title: How to Make a Custom Field Component
+title: Ceci est un Article
 date: '2020-01-20T07:00:00.000Z'
 author: Kendall Strautman
 draft: false
@@ -13,34 +13,33 @@ consumes:
   - file: /packages/@tinacms/form-builder/src/field-plugin.tsx
     details: Depends on the FieldPlugin interface
 ---
+Les champs de formulaire sont le pain et le beurre de tout CMS. Alors que Tina fournit une solide collection de champs «prêts à l'emploi», vous pouvez également créer les vôtres. Cet article vous montrera les concepts de base de la façon de créer des composants de champ personnalisés et de les utiliser dans la barre latérale de Tina.
 
-Form fields are the bread and butter of any CMS. While Tina provides a solid collection of fields 'out-of-the-box', you can also create your own. This post will show you the basic concepts of how to create custom field components and use them in the Tina sidebar.
+**Prérequis 👩‍🏫**
 
-**Prerequisites 👩‍🏫**
+Tout au long de la publication, je ferai référence à quelques concepts de base de TinaCMS tels que les [formulaires](https://tinacms.org/docs/forms) , la barre latérale et les [champs](https://tinacms.org/docs/fields) . Il sera utile d'avoir une connaissance pratique de la base du fonctionnement de [**TinaCMS**](https://tinacms.org/docs/getting-started/how-tina-works) avant de lire. N'hésitez pas à vous référer à la [documentation](https://tinacms.org/docs/getting-started/introduction) ou à lire un article sur l'utilisation de Tina avec [Gatsby](https://www.gatsbyjs.org/blog/2019-12-20-integrate-tinacms-with-your-gatsby-website/) ou [Next.js](https://tinacms.org/blog/using-tinacms-with-nextjs/) pour vous familiariser.
 
-Throughout the post, I'll refer to a few core TinaCMS concepts such as [forms](https://tinacms.org/docs/forms), the sidebar, and [fields](https://tinacms.org/docs/fields). It will be helpful to have some basic working knowledge of [**how TinaCMS works**](https://tinacms.org/docs/getting-started/how-tina-works) before reading. Feel free to refer to the [documentation](https://tinacms.org/docs/getting-started/introduction) or read a post on using Tina with [Gatsby](https://www.gatsbyjs.org/blog/2019-12-20-integrate-tinacms-with-your-gatsby-website/) or [Next.js](https://tinacms.org/blog/using-tinacms-with-nextjs/) to get familiar.
+## Pourquoi voudriez-vous créer un champ personnalisé?
 
-## Why would you create a custom field?
-
-Tina was intended to be fully customizable and extensible. Creating **custom fields can provide precise control** over the sidebar configuration and styling, along with implementing unique field functionality.
+Tina devait être entièrement personnalisable et extensible. La création de **champs personnalisés peut fournir un contrôle précis** sur la configuration et le style de la barre latérale, ainsi que la mise en œuvre d'une fonctionnalité de champ unique.
 
 ![saturation-custom-field-gif](/gif/saturate-custom-field.gif)
 
-> Want to jump ahead? Feel free to check out a **[finished version](https://github.com/kendallstrautman/llama-filters) of the custom range input field** seen in the gif above, or take a peak at a more complex [_Authors_ field plugin](https://github.com/tinacms/tina-starter-grande/blob/master/src/fields/authors.js) in the Tina Grande repo.
+> Envie d'aller de l'avant? N'hésitez pas à consulter une [**version finie**](https://github.com/kendallstrautman/llama-filters)                                                                                                                                                                                                                                 **du champ de saisie de la plage personnalisée** vu dans le gif ci-dessus, ou jetez un œil à un [plugin de champ ](https://github.com/tinacms/tina-starter-grande/blob/master/src/fields/authors.js)_[Auteurs](https://github.com/tinacms/tina-starter-grande/blob/master/src/fields/authors.js)_ plus complexe dans le repo Tina Grande.
 
-## Two Methods — Let’s start simple
+## Deux méthodes - Commençons simplement
 
-There are two ways to add [custom fields](https://tinacms.org/docs/fields/custom-fields) to Tina. The first approach involves _defining a React component and passing it into the `component` property_ of a field definition. The Tina Team refers to this as an **inline field component.** This option is more straightforward; it will be the method of focus in this post.
+Il existe deux façons d'ajouter [des champs personnalisés](https://tinacms.org/docs/fields/custom-fields) à Tina. La première approche consiste à _définir un composant Réagir et à passer dans la `component`propriété_ d'une définition de champ. L'équipe Tina y fait référence en tant que **composant de terrain en ligne.** Cette option est plus simple; ce sera la méthode de mise au point dans ce post.
 
-The second approach involves defining a custom component, then registering that component as a [field plugin](https://tinacms.org/docs/fields/custom-fields#2-creating-field-plugins) with the CMS. All the [core fields](https://tinacms.org/docs/fields) provided by Tina are used as plugins.
+La deuxième approche consiste à définir un composant personnalisé, puis à enregistrer ce composant en tant que [plugin de champ](https://tinacms.org/docs/fields/custom-fields#2-creating-field-plugins) auprès du CMS. Tous les [champs principaux](https://tinacms.org/docs/fields) fournis par Tina sont utilisés comme plugins.
 
-There are some advantages to creating a plugin versus an inline field — the main points being reusability and access to additional functions for parsing, validation etc. But **for simpler cases**, when you need a custom field in just one form or don’t necessarily need validation, an inline field component will do just fine 👌.
+Il existe certains avantages à créer un plugin par rapport à un champ en ligne - les principaux points étant la réutilisabilité et l'accès aux fonctions supplémentaires pour l'analyse, la validation, etc. Mais **pour les cas plus simples** , lorsque vous avez besoin d'un champ personnalisé sous une seule forme ou que vous n'avez pas besoin de validation de besoin, un composant de champ en ligne fera très bien l'affaire 👌.
 
-## Creating a custom inline field
+## Création d'un champ en ligne personnalisé
 
-Say we have a [Tina Form](https://tinacms.org/docs/forms) set up for an _About Me_ page:
+Imaginons qu'un [formulaire Tina soit](https://tinacms.org/docs/forms) configuré pour une page _À propos de moi_ :
 
-> _Note:_ The examples below will be referencing a Next.js setup, but this approach can be applied to Gatsby as well.
+> _Remarque:_ Les exemples ci-dessous offrent une référence à une configuration Next.js, mais cette approche peut également être appliquée à Gatsby.
 
 ```js
 const formOptions = {
@@ -66,7 +65,7 @@ const formOptions = {
 }
 ```
 
-We could add a custom inline field component to further organize the sidebar:
+Nous pourrions ajouter un composant de champ en ligne personnalisé pour organiser davantage la barre latérale:
 
 ```js
 const formOptions = {
@@ -97,30 +96,27 @@ const formOptions = {
 }
 ```
 
-_Pretty cool huh?_ 🤩
+_Assez cool hein?_ 🤩
 
-Notice how in all of the other field objects, the `component` property is referencing a Tina field plugin, whereas **with our custom inline field, we are passing in a React component.**
+Remarquez commentez dans tous les autres objets de champ, la `component`propriété fait référence à un plugin de champ Tina, alors **que notre champ en ligne personnalisé, nous transmettons un composant React.**
 
 ![Custom Inline Field In Sidbar](/img/blog/custom-field-inline.png)
 
-Now this example component is super simple — a glorified label. This type of component can be helpful with organizing or customizing the sidebar, but _we can go further and pass in more complex fields_.
+Maintenant, cet exemple de composant est super simple - une étiquette glorifiée. Ce type de composant peut être utile pour l'organisateur ou personnaliser la barre latérale, mais _nous pouvons aller plus loin et passer dans des domaines plus complexes_ .
 
-## Custom Range Slider 🎨
+## Curseur de plage personnalisé 🎨
 
-Say we had an image on the _About Me_ page and we wanted to be able to control some [CSS filters](https://css-tricks.com/almanac/properties/f/filter/) on that image. The pen below shows all the CSS filters we have to play with.
+Supposons que nous avions une image sur la page _À propos de moi_ et que nous voulions pouvoir contrôler certains filtres [CSS](https://css-tricks.com/almanac/properties/f/filter/) sur cette image. Le stylo ci-dessous montre tous les filtres CSS avec nous devons jouer.
 
-<iframe height="450" style="width: 100%;" scrolling="no" title="CSS Filters + A Springer Spaniel" src="https://codepen.io/kendallstrautman/embed/WNbzLJZ?height=265&theme-id=default&default-tab=css,result" frameborder="no" allowtransparency="true" allowfullscreen="true">
-  See the Pen <a href='https://codepen.io/kendallstrautman/pen/WNbzLJZ'>CSS Filters + A Springer Spaniel</a> by Kendall strautman
-  (<a href='https://codepen.io/kendallstrautman'>@kendallstrautman</a>) on <a href='https://codepen.io'>CodePen</a>.
-</iframe>
+<iframe height = "450" ​​style = "width: 100%;" scrolling = "no" title = "Filtres CSS + Un Springer Spaniel" src = "https://codepen.io/kendallstrautman/embed/WNbzLJZ?height=265&theme-id=default&default-tab=css,result" frameborder = "no "allowtransparency =" true "allowfullscreen =" true "> Voir le Pen <a href='https://codepen.io/kendallstrautman/pen/WNbzLJZ'> Filtres CSS + Un Springer Spaniel </a> par Kendall strautman (< un href = 'https: //codepen.io/kendallstrautman'> @kendallstrautman </a>) sur <a href='https://codepen.io'> CodePen </a>. </iframe>
 
-We can create a custom input field to provide editing control over these visual filters. **Let’s make a custom field that controls image saturation.**
+Nous pouvons créer un champ de saisie personnalisé pour fournir un contrôle d'édition sur ces filtres visuels. **Créons un champ personnalisé qui contrôle la saturation de l'image.**
 
-> **Tip:** Saturation in photography relates to the _intensity of particular colors in an image_. A highly saturated image would be very bright, with colors bordering on neon. An image with low saturation would appear muted and grey.
+> **Astuce:** La saturation en photographie se rapporte à l' _intensité des couleurs particulières dans une image_ . Une image très saturée serait très lumineuse, avec des couleurs bordant le néon. Une image avec une faible saturation apparaîtra en sourdine et grise.
 
-### 1. Create the input field component
+### 1. Créez le composant de champ de saisie
 
-To create a custom input field, we need to make a **React component that takes input and updates data when the input is altered**. For this example, we are going to make a [range input field](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/range) that handles the state of the saturation value and updates that state whenever the range control is slid.
+Pour créer un champ de saisie personnalisé, nous devons créer un **composant Réagissez qui prend en entrée et rencontré à jour les données lorsque l'entrée est modifiée** . Pour cet exemple, nous allons créer un [champ de saisie de plage](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/range) qui gère l'état de la valeur de saturation et le jour à chaque fois que le contrôle de la plage est glissé.
 
 ```jsx
 // An example of a custom range field component
@@ -152,28 +148,28 @@ function RangeInput(props) {
 }
 ```
 
-#### 👽 Take a closer look — Props:
+#### 👽 Regardez de plus près - Accessoires:
 
-Notice this line, `{...props.input}`. You may be wondering where this magical object with all of the necessary input props is coming from?
+Cette ligne Remarquez `{...props.input}`,. Vous vous demandez peut-être d'où vient cet objet magique avec tous les accessoires nécessaires?
 
-When the custom field is registered with Tina, this **input object** is passed in as a prop to the field. This object contains necessary data and callbacks for the input to function properly: [`value`](https://final-form.org/docs/react-final-form/types/FieldRenderProps#inputvalue), [`name`](https://final-form.org/docs/react-final-form/types/FieldRenderProps#inputname), [`onChange`](https://final-form.org/docs/react-final-form/types/FieldRenderProps#inputonchange), [`onFocus`](https://final-form.org/docs/react-final-form/types/FieldRenderProps#inputonfocus), [`onBlur`](https://final-form.org/docs/react-final-form/types/FieldRenderProps#inputonblur).
+Lorsque le champ personnalisé est enregistré auprès de Tina, cet **objet d'entrée** est transmis comme accessoire au champ. Contient des CET nécéssaires et callbacks l'objet trabalho plat principale Données Verser Verser correctement: [`value`](https://final-form.org/docs/react-final-form/types/FieldRenderProps#inputvalue), [`name`](https://final-form.org/docs/react-final-form/types/FieldRenderProps#inputname), [`onChange`](https://final-form.org/docs/react-final-form/types/FieldRenderProps#inputonchange), [`onFocus`](https://final-form.org/docs/react-final-form/types/FieldRenderProps#inputonfocus), [`onBlur`](https://final-form.org/docs/react-final-form/types/FieldRenderProps#inputonblur).
 
-> If your custom component is not a standard [HTML input element](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input), you will need to manually pass in the necessary input props, as opposed to using the [spread operator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Spread_syntax).
+> Si votre composant personnalisé n'est pas un [élément d'entrée HTML](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input) standard, vous devez passer avec les accessoires d'entrée nécessaires, au lieu utilisé l' [opérateur d'étalement](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Spread_syntax) .
 
-**All of the props** passed to the field component are:
+**Tous les accessoires** passés au composant de champ sont:
 
-- `field` — A reference to the [field definition](https://tinacms.org/docs/fields).
-- `input` — The object with data and callbacks for the field to set and update data. _Outlined above_ ☝️.
-- `meta` — This provides [metadata](https://final-form.org/docs/react-final-form/types/FieldRenderProps#metaactive) about the state of the field.
-- `tinaForm` — A reference to the form where this field is registerd.
+* `field`- Une référence à la [définition](https://tinacms.org/docs/fields) du [champ](https://tinacms.org/docs/fields) .
+* `input`- L'objet avec des données et des rappels pour le champ pour définir et mettre à jour les données. _Décrit ci-dessus_ ☝️.
+* `meta`- Cela fournit des [métadonnées](https://final-form.org/docs/react-final-form/types/FieldRenderProps#metaactive) sur l'état du champ.
+* `tinaForm` - Une référence au formulaire où ce champ est enregistré.
 
-The [react-final-form documentation](https://final-form.org/docs/react-final-form/api/Field#3-connect-the-callbacks-to-your-input) describes the `input` and `meta` props incredibly well. When creating custom fields, you'll typically be accessing the `field` and `input` props.
+La [documentation réagira-forme finale](https://final-form.org/docs/react-final-form/api/Field#3-connect-the-callbacks-to-your-input) décrit le `input`et `meta`incroyablement bien accessoires. Lors de la création de champs personnalisés, vous aurez divers accès aux accessoires `field`et `input`.
 
-#### Where should the custom field live?
+#### Où le champ personnalisé doit-il vivre?
 
-As we saw in the first example, we can pass in the custom field component directly via the `component` property — `component: () => <p>Hi<p>`. But when we are creating more complex fields, we will most likely want to extract the field into its own function.
+Comme nous avons vu vu dans le premier exemple, nous pouvons passer le composant de champ personnalisé directement via la `component`propriété - `component: () => <p>Hi<p>`. Mais lorsque nous voulons des champs plus complexes, nous voudrons très probablement extraire le champ dans sa propre fonction.
 
-In the example above, `RangeInput` could be defined alongside the `AboutMe` component where the Tina form is set up:
+Dans l'exemple ci-dessus, `RangeInput`pourrait être défini à côté du `AboutMe`composant où la forme Tina est configurée:
 
 ```jsx
 /*
@@ -206,7 +202,7 @@ AboutMe.getInitialProps = async function() {
 }
 ```
 
-It could also be defined in its own file and imported into the file where the Tina form options are configured:
+Il peut également être défini dans son propre fichier et importé dans le fichier où les options du formulaire sont configurées:
 
 ```jsx
 /*
@@ -236,15 +232,15 @@ AboutMe.getInitialProps = async function() {
 }
 ```
 
-As with many things in development, the answer **depends on your usecase** 😉. Feel free to reference this [demo repo](https://github.com/kendallstrautman/llama-filters/blob/master/pages/Index.js) to see a working example structure for Next.js.
+Comme pour beaucoup de choses en développement, la réponse **dépend de votre cas d'utilisation** 😉. N'hésitez pas à référencer ce [dépôt de démonstration](https://github.com/kendallstrautman/llama-filters/blob/master/pages/Index.js) pour voir un exemple de structure de travail pour Next.js.
 
-### 2. Add the value to the source data
+### 2. Ajoutez la valeur aux données source
 
-Now that the custom input field is defined, we need to add the `image_saturation` value to our source data. The source data could be a Markdown or JSON file. If you already have a Tina Form set up, it should be linked with a data source, so head to that file.
+Maintenant que le champ de saisie personnalisé est défini, nous devons ajouter la `image_saturation`valeur à nos données source. Les données source peuvent être un fichier Markdown ou JSON. Si vous avez déjà configuré un formulaire Tina, il doit être lié à une source de données, alors dirigez-vous vers ce fichier.
 
-For our example, let's say we have a local JSON file called `about.json`. This file contains the data used in the _About Me_ page. In it we can add the `image_saturation` value.
+Pour notre exemple, supposons que nous ayons un fichier JSON local appelé `about.json`. Ce fichier contient les données utilisées dans la page _À propos de moi_ . Nous pouvons y ajouter de la `image_saturation`valeur.
 
-The value can be any integer or floating point number that exists between the range defined in our `RangeInput` component — 0 to 10, with a step of 0.1 (meaning each 'slide step' of the range increments or decrements the value by 0.1). As a saturation value, **zero would be totally grayscale** or no color, so we can fill in something like 3 to get a more 'normal' look.
+La valeur peut être n'importe quel nombre entier ou virgule flottante qui existe entre la plage définie dans notre `RangeInput`composant - 0 à 10, avec un pas de 0,1 (ce qui signifie que chaque \`\` pas de diapositive '' de la plage augmente ou diminue la valeur de 0,1). En tant que valeur de saturation, **zéro serait totalement en niveaux de gris** ou sans couleur, nous pouvions donc remplir quelque chose comme 3 pour obtenir un aspect plus «normal».
 
 ```JSON
 // Example About Me Page source data --> about.json
@@ -256,15 +252,15 @@ The value can be any integer or floating point number that exists between the ra
 }
 ```
 
-> If you’re using Gatsby, you will **need to update your GraphQL query** to get this new data. Add the `image_saturation` field to your query.
+> Si vous utilisez Gatsby, vous **devez mettre à jour votre requête GraphQL** pour obtenir ces nouvelles données. Ajoutez le `image_saturation`champ à votre requête.
 
-So now we have a source value that can be connected to the custom input field. This way, **Tina can update the value in the source file** in sync with the changes picked up by the `RangeInput` component.
+Nous avons donc maintenant une valeur source qui peut être connectée au champ de saisie personnalisée. De cette façon, **Tina peut mettre à jour la valeur dans le fichier source** en synchronisation avec les modifications récupérées par le `RangeInput`composant.
 
-### 3. Add the custom field to a Tina Form
+### 3. Ajoutez le champ personnalisé à un formulaire Tina
 
-How about we wire up this custom field to Tina? 🎊
+Que diriez-vous de câbler ce champ personnalisé à Tina? 🎊
 
-In this step, we need to create the custom field definition and pass in the `RangeInput` component inline. We'll go back to our _About Me_ page [form options](https://tinacms.org/docs/gatsby/json#customizing-json-forms):
+Dans cette étape, nous devons créer la définition de champ personnalisé et transmettre le `RangeInput`composant en ligne. Nous reviendrons à nos [options de formulaire de](https://tinacms.org/docs/gatsby/json#customizing-json-forms) page _À propos de moi_ :
 
 ```jsx
 const formOptions = {
@@ -300,13 +296,13 @@ const formOptions = {
 }
 ```
 
-Start the development server and you should see the custom `RangeInput` field in the sidebar. If you slide it, you should see the value updating in `about.json`.
+Démarrez le serveur de développement et vous devriez voir le `RangeInput`champ personnalisé dans la barre latérale. Si vous faites glisser, vous devriez voir la valeur se mettre à jour dans `about.json`.
 
-### 4. Dynamically set the CSS filter
+### 4. Définissez dynamiquement le filtre CSS
 
-If all went well, our custom input field should be wired up, but there's one last thing to do. We haven’t connected the _saturation value_ with a CSS filter to actually see an effect on the image.
+Si tout s'est bien passé, notre champ de saisie personnalisé devrait être câblé, mais il y a une dernière chose à faire. Nous n'avons pas connecté la _valeur de saturation_ avec un filtre CSS pour voir réellement un effet sur l'image.
 
-In order to do this, you’ll need to be using a [_CSS-in-JS_](https://css-tricks.com/bridging-the-gap-between-css-and-javascript-css-in-js/) framework so we can dynamically update the filter values through the component props. If you’re using Next.js, `styled-jsx` works out-of-the-box and is pretty fantastic. Below is an example of the _saturation value_ being connected to the CSS filter with `styled-jsx`:
+Pour ce faire, vous devez utiliser un cadre _[CSS-dans-JS](https://css-tricks.com/bridging-the-gap-between-css-and-javascript-css-in-js/)_ afin que nous puissions mettre à jour dynamiquement les valeurs de filtre via les accessoires de composant. Si vous utilisez Next.js, `styled-jsx`fonctionne immédiatement et est assez fantastique. Voici un exemple de la _valeur de saturation_ connectée au filtre CSS avec `styled-jsx`:
 
 ```jsx
 /*
@@ -339,18 +335,18 @@ function AboutMe(props) {
 }
 ```
 
-Some other examples of awesome _CSS-in-JS_ frameworks are [styled-components](https://www.styled-components.com/) and [emotion.js](https://emotion.sh/docs/introduction). Note that the above implementation for these alternative frameworks this will look slightly different.
+Quelques autres exemples de frameworks _CSS-in-JS_ impressionnants sont les [composants de style](https://www.styled-components.com/) et [emotion.js](https://emotion.sh/docs/introduction) . Notez que l'implémentation ci-dessus pour ces cadres alternatifs sera légèrement différente.
 
-### Next Steps
+### Prochaines étapes
 
-A good next step would be _adding styles to the custom `RangeInput` component_. You could use [`@tinacms/styles`](https://tinacms.org/docs/fields/custom-fields#using-tina-styles) to fit the vibe of other Tina fields ✌️. Or you could go wild and spice up the sidebar in your own way 🤠.
+Une bonne prochaine étape serait d' _ajouter des styles au `RangeInput`composant personnalisé_ . Vous pouvez utiliser [`@tinacms/styles`](https://tinacms.org/docs/fields/custom-fields#using-tina-styles)pour s'adapter à l'ambiance des autres champs Tina ✌️. Vous pouvez déchaîner et pimenter la barre latérale à votre façon 🤠.
 
-If we wanted to reuse this component throughout the site, **we could take a step further and make it into a [Field Plugin](https://tinacms.org/docs/fields/custom-fields#2-creating-field-plugins)**. Stay tuned for a follow-up post that dives into creating custom Field Plugins, or swing by the [docs](https://tinacms.org/docs/fields/custom-fields#2-creating-field-plugins) to get a head start.
+Si nous voulions réutiliser ce composant sur l'ensemble du site, **nous pourrions aller plus loin et en faire un**                                                                                                                                                                                                                       [**plugin de terrain**](https://tinacms.org/docs/fields/custom-fields#2-creating-field-plugins) . Restez à l'écoute pour un article de suivi qui plonge dans la création de plugins de terrain personnalisés, ou passez par les [documents](https://tinacms.org/docs/fields/custom-fields#2-creating-field-plugins) pour prendre une longueur d'avance.
 
-> Feel free to check out a **[finished version](https://github.com/kendallstrautman/llama-filters) of this custom range input field**, or take a peak at a more complex [_Authors_ field plugin](https://github.com/tinacms/tina-starter-grande/blob/master/src/fields/authors.js) in the Tina Grande repo.
+> N'hésitez pas à consulter une [**version finale**](https://github.com/kendallstrautman/llama-filters)                                                                                                                                                                                                                       **de ce champ de saisie de plage personnalisée** ou à découvrir un [plugin de champ ](https://github.com/tinacms/tina-starter-grande/blob/master/src/fields/authors.js)_[Auteurs](https://github.com/tinacms/tina-starter-grande/blob/master/src/fields/authors.js)_ plus complexe dans le référentiel Tina Grande.
 
-### Takeaways 🕺🏻
+### À emporter 🕺🏻
 
-Making custom field components for TinaCMS is incredibly exciting! Hopefully this post got your creative gears turning on the numerous variables to tinker with in the content editing experience.
+Faire des composants de terrain personnalisés pour TinaCMS est incroyablement excitant! Avec un peu de chance, ce post a permis à vos créatifs d'activer les nombreuses variables à bricoler dans l'expérience d'édition de contenu.
 
-I think the biggest takeaway from this short exploration of custom fields is that **you can put any React component into the sidebar**. This flexibility is very powerful; it opens the door for you to custom-tune the editing controls for a project depending on its unique needs. And while creating custom components may not be necessary all the time, simply knowing it’s an option is reassuring, if not inspiring.
+Je pense que le plus grand enseignement de cette courte exploration des champs personnalisés est que **vous pouvez mettre n'importe quel composant Réagissez dans la barre latérale** . Cette flexibilité est très puissante; il vous ouvre la porte pour personnaliser les contrôles d'édition d'un projet en fonction de ses besoins uniques. Et bien que la création de composants personnalisés ne soit pas toujours nécessaire, le simple fait de savoir que c'est une option est rassurant, voire inspirant.
